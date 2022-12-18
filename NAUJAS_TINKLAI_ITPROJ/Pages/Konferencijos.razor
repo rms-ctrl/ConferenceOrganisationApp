@@ -59,7 +59,7 @@
                     <button @onclick="() => DeleteHeader(konferencija.pk_Id)">Naikinti Headerį</button>  
                 }
 
-                @if (_dataService.ContainsKey("user") && (user.Privilegijos == "Administratorius"))
+                @if (_dataService.ContainsKey("user") && (user.Privilegijos == "Konferencijų organizatorius" || user.Privilegijos == "Administratorius"))
                 {
                     <button @onclick="() => Delete(konferencija.pk_Id)">Naikinti konferenciją</button>
                 }
