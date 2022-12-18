@@ -11,7 +11,7 @@
     <div>
         <form>
             <label for="linkas">Nuoroda į Header nuotrauką:</label><br />
-            <input type="text" id="linkas" @bind="header.Nuotrauka" required /><br />
+            <input type="text" id="linkas" @bind-value="header.Nuotrauka" required /><br />
         </form>
         <br />
         <button @onclick="() => CreateHeader()" type="submit">Kurti</button>

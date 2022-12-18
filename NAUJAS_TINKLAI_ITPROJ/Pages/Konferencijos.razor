@@ -126,11 +126,6 @@
 
     void Delete(int pk_Id)
     {
-        string sql = "delete from `konferencija` where pk_Konferencija=?id";
-        DataAccessMySql.Delete(sql, _config.GetConnectionString("default"), args =>
-        {
-            args.Add("?id", MySqlDbType.Int32).Value = pk_Id;
-        });
         var count = headeriai.Count(r => r.fk_KonferencijosId == pk_Id);
         if (count > 0)
         {
@@ -140,6 +135,13 @@
                 args.Add("?id", MySqlDbType.Int32).Value = pk_Id;
             });
         }
+
+        string sql = "delete from `konferencija` where pk_Konferencija=?id";
+        DataAccessMySql.Delete(sql, _config.GetConnectionString("default"), args =>
+        {
+            args.Add("?id", MySqlDbType.Int32).Value = pk_Id;
+        });
+      
 
         NavigationManager.NavigateTo("/konferencijos");
     }
