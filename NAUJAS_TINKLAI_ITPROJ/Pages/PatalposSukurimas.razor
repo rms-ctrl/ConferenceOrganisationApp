@@ -1,0 +1,81 @@
+﻿@page "/patalpacreate"
+
+@inject DataAccessMySql _data
+@inject IConfiguration _config
+@inject NavigationManager NavigationManager
+@inject DataService _dataService
+
+@if (_dataService.ContainsKey("user") && (user.Privilegijos == "Administratorius"))
+{
+    <h3>Patalpos kūrimas</h3>
+
+
+    <form>
+        <label for="name">Pavadinimas:</label><br />
+        <input type="text" id="name" @bind="patalpa.Pavadinimas" required /><br />
+        <label for="address">Adresas:</label><br />
+        <input type="text" id="address" @bind="patalpa.Adresas" required /><br />
+        <label for="capacity">Talpa:</label><br />
+        <input type="number" id="capacity" @bind="patalpa.Talpa" required /><br />
+        <label for="availability">Laisvumo data:</label><br />
+        <input type="date" id="availability" @bind="patalpa.LaisvumoData" required /><br />
+        <label for="equipment">Įranga:</label><br />
+        <input type="text" id="equipment" @bind="patalpa.Įranga" required /><br />
+        <label for="number">Pranesėjų skaičius:</label><br />
+        <input type="number" id="number" @bind="patalpa.PranesejuSk" required /><br />
+        <br />
+        <button @onclick="CreateNew" type="submit">Submit</button>
+    </form>
+}
+else
+{
+    <center><h3>Jūs neturite teisių!</h3></center>
+}
+@code {
+    Patalpa patalpa = new Patalpa();
+    Rezervacija rezervacija = new Rezervacija();
+    Vartotojas user = new Vartotojas();
+
+    protected override void OnInitialized()
+    {
+        if (_dataService.ContainsKey("user"))
+        {
+            user = _dataService.GetData("user") as Vartotojas;
+        }
+    }
+    void CreateNew()
+    {
+        
+
+        string sql1 =
+       "insert into rezervacija (fk_VartotojoId, ArRezervuota) values (?fkid, ?rezerv)";
+        DataAccessMySql.Insert(sql1, _config.GetConnectionString("default"), args =>
+        {
+            args.Add("?fkid", MySqlDbType.Int32).Value = user.pk_Id;
+            args.Add("?rezerv", MySqlDbType.Int32).Value = 0;
+        });
+
+        var sql2 = $@"SELECT * FROM rezervacija ORDER BY pk_Rezervacija DESC LIMIT 1;";
+        var dt = _data.Query(sql2, _config.GetConnectionString("default"));
+        foreach (DataRow item in dt)
+        {
+            rezervacija.pk_Id = Convert.ToInt32(item["pk_Rezervacija"]);
+            rezervacija.fk_VartotojoId = Convert.ToInt32(item["fk_VartotojoId"]);
+            rezervacija.arRezervuota = Convert.ToBoolean(item["ArRezervuota"]);
+        }
+
+        string sql3 =
+        "insert into patalpa (Pavadinimas, Adresas, Talpa, LaisvumoData, Įranga, PranesejuSk, fk_RezervacijosId) values (?pavad, ?adres, ?talpa, ?ldata, ?iranga, ?pranesejusk, ?fkrez)";
+        DataAccessMySql.Insert(sql3, _config.GetConnectionString("default"), args =>
+        {
+            args.Add("?pavad", MySqlDbType.VarChar).Value = patalpa.Pavadinimas;
+            args.Add("?adres", MySqlDbType.VarChar).Value = patalpa.Adresas;
+            args.Add("?talpa", MySqlDbType.Int32).Value = patalpa.Talpa;
+            args.Add("?ldata", MySqlDbType.DateTime).Value = patalpa.LaisvumoData;
+            args.Add("?iranga", MySqlDbType.VarChar).Value = patalpa.Įranga;
+            args.Add("?pranesejusk", MySqlDbType.Int32).Value = patalpa.PranesejuSk;
+            args.Add("?fkrez", MySqlDbType.Int32).Value = rezervacija.pk_Id;
+        });
+
+    }
+}

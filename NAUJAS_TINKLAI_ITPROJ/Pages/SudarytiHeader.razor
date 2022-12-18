@@ -1,0 +1,51 @@
+﻿@page "/konferencijos/Header/{pk_Id:int}"
+
+@inject DataAccessMySql _data
+@inject IConfiguration _config
+@inject NavigationManager NavigationManager
+@inject DataService _dataService
+
+@if (_dataService.ContainsKey("user") && (user.Privilegijos == "Administratorius"))
+{
+    <h3>Sudaryti Header</h3>
+    <div>
+        <form>
+            <label for="linkas">Nuoroda į Header nuotrauką:</label><br />
+            <input type="text" id="linkas" @bind="header.Nuotrauka" required /><br />
+        </form>
+        <br />
+        <button @onclick="() => CreateHeader()" type="submit">Kurti</button>
+    </div>
+}
+else
+{
+    <center><h3>Jūs neturite teisių!</h3></center>
+}
+@code {
+    [Parameter]
+    public int pk_Id { get; set; }
+
+    Headeris header = new Headeris();
+    Vartotojas user = new Vartotojas();
+
+    protected override void OnInitialized()
+    {
+        if (_dataService.ContainsKey("user"))
+        {
+            user = _dataService.GetData("user") as Vartotojas;
+        }
+    }
+
+    void CreateHeader()
+    {
+        string sql =
+                "insert into headeris (Nuotrauka, fk_KonferencijaId) values (?linkas, ?fkkonf)";
+        DataAccessMySql.Insert(sql, _config.GetConnectionString("default"), args =>
+        {
+            args.Add("?linkas", MySqlDbType.VarChar).Value = header.Nuotrauka;
+            args.Add("?fkkonf", MySqlDbType.Int32).Value = pk_Id;
+        });
+
+        NavigationManager.NavigateTo("/konferencijos");
+    }
+}

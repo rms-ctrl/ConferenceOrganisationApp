@@ -1,0 +1,125 @@
+﻿@page "/konferencijos/Edit/{pk_Id:int}"
+
+@inject DataAccessMySql _data
+@inject IConfiguration _config
+@inject NavigationManager NavigationManager
+@inject DataService _dataService
+
+@if (_dataService.ContainsKey("user") && (user.Privilegijos == "Administratorius") || (user.Privilegijos == "Konferencijos organizatorius"))
+{
+<h3>Konferencijos redagavimas</h3>
+
+<form @onsubmit="HandleValidSubmit">
+    <div>
+        <label for="Pavadinimas">Pavadinimas:</label><br />
+        <input type="text" id="Pavadinimas" @bind-value="konferencija.Pavadinimas" required />
+    </div>
+    <div>
+        <label for="Data">Data:</label><br />
+        <input type="date" id="Data" @bind-value="konferencija.Data" required />
+    </div>
+    <div>
+        <label for="Trukme">Trukmė:</label><br />
+        <input type="number" id="Trukme" @bind-value="konferencija.Trukmė" required />
+    </div>
+    <div>
+        <label for="Kaina">Kaina:</label><br />
+        <input type="number" id="Kaina" @bind-value="konferencija.Kaina" required />
+    </div>
+    <div>
+        <label for="Aprasymas">Aprašymas:</label><br />
+        <textarea id="Aprasymas" @bind="konferencija.Aprasymas" required></textarea>
+    </div>
+    <div>
+        <label for="TelNr">Tel. nr.:</label><br />
+        <input type="text" id="TelNr" @bind-value="konferencija.TelNr" required />
+    </div>
+    <div>
+        <label for="fk_PatalposId">Patalpos ID:</label><br />
+        <select id="fk_PatalposId" @bind="konferencija.fk_PatalposId">
+            @foreach (var patalpa in Patalpos)
+            {
+                <option value="@patalpa.pk_Id">@patalpa.Pavadinimas</option>
+            }
+        </select>
+    </div>
+    <br />
+    <div>
+        <button type="submit">Saugoti</button>
+    </div>
+    </form>
+} else
+{
+    <center><h3>Jūs neturite teisių!</h3></center>
+}
+@code {
+    [Parameter]
+    public int pk_Id { get; set; }
+    Vartotojas user = new Vartotojas();
+    Konferencija konferencija = new Konferencija();
+    List<Patalpa> Patalpos = new List<Patalpa>();
+
+    protected override void OnInitialized()
+    {
+        var query = $@"SELECT * FROM `konferencija` WHERE pk_Konferencija=?id";
+        var dt =
+                _data.Query(query, _config.GetConnectionString("default"), args =>
+                {
+                    args.Add("?id", MySqlDbType.Int32).Value = pk_Id;
+                });
+        foreach (DataRow item in dt)
+        {
+            konferencija.Pavadinimas = Convert.ToString(item["Pavadinimas"]);
+            konferencija.Data = Convert.ToDateTime(item["Data"]);
+            konferencija.Trukmė = Convert.ToInt32(item["Trukmė"]);
+            konferencija.Kaina = Convert.ToDouble(item["Kaina"]);
+            konferencija.Aprasymas = Convert.ToString(item["Aprašymas"]);
+            konferencija.TelNr = Convert.ToString(item["TelNr"]);
+            konferencija.pk_Id = Convert.ToInt32(item["pk_Konferencija"]);
+            konferencija.fk_PatalposId = Convert.ToInt32(item["fk_PatalposId"]);
+        }
+
+        string sql = "select * from patalpa";
+        var dt1 = _data.Query(sql, _config.GetConnectionString("default"));
+        foreach (DataRow item in dt1)
+        {
+            Patalpos.Add(new Patalpa
+                {
+                    Pavadinimas = Convert.ToString(item["Pavadinimas"]),
+                    Adresas = Convert.ToString(item["Adresas"]),
+                    Talpa = Convert.ToInt32(item["Talpa"]),
+                    LaisvumoData = Convert.ToDateTime(item["LaisvumoData"]),
+                    Įranga = Convert.ToString(item["Įranga"]),
+                    PranesejuSk = Convert.ToInt32(item["PranesejuSk"]),
+                    pk_Id = Convert.ToInt32(item["pk_Patalpa"]),
+                    fk_Rezervacija = Convert.ToInt32(item["fk_RezervacijosId"])
+                });
+        }
+
+        if (_dataService.ContainsKey("user"))
+        {
+            user = _dataService.GetData("user") as Vartotojas;
+        }
+    }
+
+    // Method to handle the form submission
+    void HandleValidSubmit()
+    {
+        // Update the Vartotojas model in the database
+        string sql = "update `konferencija` set Pavadinimas=?pavadinimas, Data=?data, Trukmė=?trukme, Kaina=?kaina, Aprašymas=?aprasymas, TelNr=?telnr, fk_PatalposId=?fkpatalpa where pk_Konferencija=?id";
+
+        DataAccessMySql.Update(sql, _config.GetConnectionString("default"), args =>
+        {
+            args.Add("?pavadinimas", MySqlDbType.VarChar).Value = konferencija.Pavadinimas;
+            args.Add("?data", MySqlDbType.DateTime).Value = konferencija.Data;
+            args.Add("?trukme", MySqlDbType.Int32).Value = konferencija.Trukmė;
+            args.Add("?kaina", MySqlDbType.Double).Value = konferencija.Kaina;
+            args.Add("?aprasymas", MySqlDbType.VarChar).Value = konferencija.Aprasymas;
+            args.Add("?telnr", MySqlDbType.VarChar).Value = konferencija.TelNr;
+            args.Add("?fkpatalpa", MySqlDbType.Int32).Value = konferencija.fk_PatalposId;
+            args.Add("?id", MySqlDbType.Int32).Value = konferencija.pk_Id;
+
+        });
+        NavigationManager.NavigateTo("/konferencijos");
+    }
+}

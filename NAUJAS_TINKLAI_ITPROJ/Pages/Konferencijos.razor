@@ -1,0 +1,163 @@
+﻿@page "/konferencijos"
+@inject DataAccessMySql _data
+@inject IConfiguration _config
+@inject NavigationManager NavigationManager
+@inject DataService _dataService
+
+<style>
+    table {
+        border: 1px solid black;
+        border-collapse: collapse;
+    }
+    th, td {
+        border: 1px solid black;
+        padding: 5px;
+    }
+    th {
+        background-color: lightgray;
+    }
+    tr:hover {
+        background-color: lightblue;
+    }
+</style>
+
+<h3>Konferencijos</h3>
+@if (_dataService.ContainsKey("user") && (user.Privilegijos == "Konferencijų organizatorius" || user.Privilegijos == "Administratorius"))
+{
+    <button @onclick="() => CreateConference()">Kurti konferenciją</button>
+    <br />
+}
+
+<br />
+<table>
+    <tr>
+        <th>Pavadinimas</th>
+        <th>Data</th>
+        <th>Trukmė, val.</th>
+        <th>Kaina, eur.</th>
+        <th>Aprašymas</th>
+        <th>Tel. Nr.</th>
+        <th></th>
+    </tr>
+    @foreach (var konferencija in konferencijos)
+    {
+            <tr>
+            <td>@konferencija.Pavadinimas</td>
+            <td>@konferencija.Data.ToString("dd/MM/yyyy")</td>
+            <td>@konferencija.Trukmė</td>
+            <td>@konferencija.Kaina</td>
+            <td>@konferencija.Aprasymas</td>
+            <td>@konferencija.TelNr</td>
+                <td>
+                <button @onclick="() => MoreInfo(konferencija.pk_Id)">Daugiau informacijos</button>
+                @if (_dataService.ContainsKey("user") && (user.Privilegijos == "Konferencijų organizatorius" || user.Privilegijos == "Administratorius"))
+                {
+                    <button @onclick="() => EditConference(konferencija.pk_Id)">Redaguoti konferenciją</button>
+                    <button @onclick="() => MakeHeader(konferencija.pk_Id)">Sudaryti Header'į</button>
+                    <button @onclick="() => DeleteHeader(konferencija.pk_Id)">Naikinti Headerį</button>  
+                }
+
+                @if (_dataService.ContainsKey("user") && (user.Privilegijos == "Administratorius"))
+                {
+                    <button @onclick="() => Delete(konferencija.pk_Id)">Naikinti konferenciją</button>
+                }
+                </td>
+            </tr>
+    }
+</table>
+@code {
+    List<Konferencija> konferencijos = new List<Konferencija>();
+    List<Headeris> headeriai = new List<Headeris>();
+    Vartotojas user = new Vartotojas();
+
+    protected override async Task OnInitializedAsync()
+    {
+        string sql = "select * from konferencija";
+        var dt = _data.Query(sql, _config.GetConnectionString("default"));
+        foreach (DataRow item in dt)
+        {
+            konferencijos.Add(new Konferencija
+                {
+                    Pavadinimas = Convert.ToString(item["Pavadinimas"]),
+                    Data = Convert.ToDateTime(item["Data"]),
+                    Trukmė = Convert.ToInt32(item["Trukmė"]),
+                    Kaina = Convert.ToDouble(item["Kaina"]),
+                    Aprasymas = Convert.ToString(item["Aprašymas"]),
+                    TelNr = Convert.ToString(item["TelNr"]),
+                    pk_Id = Convert.ToInt32(item["pk_Konferencija"]),
+                    fk_PatalposId = Convert.ToInt32(item["fk_PatalposId"])
+                });
+        }
+
+        string sql1 = "select * from headeris";
+        var dt1 = _data.Query(sql1, _config.GetConnectionString("default"));
+        foreach (DataRow item in dt1)
+        {
+            headeriai.Add(new Headeris
+                {
+                    Nuotrauka = Convert.ToString(item["Nuotrauka"]),
+                    pk_Id = Convert.ToInt32(item["pk_Headeris"]),
+                    fk_KonferencijosId = Convert.ToInt32(item["fk_KonferencijaId"])
+                });
+        }
+
+        if (_dataService.ContainsKey("user"))
+        {
+            user = _dataService.GetData("user") as Vartotojas;
+        }
+    }
+
+    void EditConference(int pk_Id)
+    {
+        NavigationManager.NavigateTo($"/konferencijos/Edit/{pk_Id}");
+    }
+
+    void MoreInfo(int pk_Id)
+    {
+        NavigationManager.NavigateTo($"/konferencijos/Info/{pk_Id}");
+    }
+
+    void MakeHeader(int pk_Id)
+    {
+        NavigationManager.NavigateTo($"/konferencijos/Header/{pk_Id}");
+    }
+
+    void Delete(int pk_Id)
+    {
+        string sql = "delete from `konferencija` where pk_Konferencija=?id";
+        DataAccessMySql.Delete(sql, _config.GetConnectionString("default"), args =>
+        {
+            args.Add("?id", MySqlDbType.Int32).Value = pk_Id;
+        });
+        var count = headeriai.Count(r => r.fk_KonferencijosId == pk_Id);
+        if (count > 0)
+        {
+            string sql1 = "delete from `headeris` where fk_KonferencijaId=?id";
+            DataAccessMySql.Delete(sql1, _config.GetConnectionString("default"), args =>
+            {
+                args.Add("?id", MySqlDbType.Int32).Value = pk_Id;
+            });
+        }
+
+        NavigationManager.NavigateTo("/konferencijos");
+    }
+
+    void DeleteHeader(int pk_Id)
+    {
+        var count = headeriai.Count(r => r.fk_KonferencijosId == pk_Id);
+        if(count > 0)
+        {
+            string sql = "delete from `headeris` where fk_KonferencijaId=?id";
+            DataAccessMySql.Delete(sql, _config.GetConnectionString("default"), args =>
+            {
+                args.Add("?id", MySqlDbType.Int32).Value = pk_Id;
+            });
+        }
+        
+    }
+
+    void CreateConference()
+    {
+        NavigationManager.NavigateTo("/konferencijacreate");
+    }
+}

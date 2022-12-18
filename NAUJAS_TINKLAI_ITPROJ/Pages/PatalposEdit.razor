@@ -1,0 +1,107 @@
+﻿@page "/rezervavimas/Edit/{pk_Id:int}"
+
+@inject DataAccessMySql _data
+@inject IConfiguration _config
+@inject NavigationManager NavigationManager
+@inject DataService _dataService
+
+<h3>Patalpos redagavimas</h3>
+@if (_dataService.ContainsKey("user") && (user.Privilegijos == "Administratorius"))
+{
+<form @onsubmit="HandleValidSubmit">
+    <div>
+        <label for="Pavadinimas">Pavadinimas:</label><br />
+        <input type="text" id="Pavadinimas" @bind-value="patalpa.Pavadinimas" required />
+    </div>
+    <div>
+        <label for="Adresas">Adresas:</label><br />
+        <input type="text" id="Adresas" @bind-value="patalpa.Adresas" required />
+    </div>
+    <div>
+        <label for="Talpa">Talpa:</label><br />
+        <input type="number" id="Talpa" @bind-value="patalpa.Talpa" required />
+    </div>
+    <div>
+        <label for="LaisvumoData">Laisvumo data:</label><br />
+        <input type="date" id="LaisvumoData" @bind-value="patalpa.LaisvumoData" required />
+    </div>
+    <div>
+        <label for="Įranga">Įranga:</label><br />
+        <input type="text" id="Įranga" @bind-value="patalpa.Įranga" required />
+    </div>
+    <div>
+        <span style="color: red;">Prisiminkite, Jūsų įvesta reikšmė negali būti mažesnė nei dabartinis pranešėjų skaičius.</span> <br />
+        <label for="PranesejuSk">Pranešėjų skaičius:</label><br />
+        <input type="number" id="PranesejuSk" @bind-value="patalpa.PranesejuSk" required  />
+    </div>
+    <br />
+    <div>
+        @if(patalpa.PranesejuSk < pranesejuskaicius)
+        {
+            <input type="submit" value="Saugoti" disabled="tr ue"/>
+        }
+        else
+        {
+            <input type="submit" value="Saugoti" />
+        }
+    </div>
+    </form>
+}
+else
+{
+    <center><h3>Jūs neturite teisių!</h3></center>
+}
+@code {
+    [Parameter]
+    public int pk_Id { get; set; }
+    Vartotojas user = new Vartotojas();
+    Patalpa patalpa = new Patalpa();
+    int pranesejuskaicius = 0;
+
+    protected override void OnInitialized()
+    {
+        var query = $@"SELECT * FROM `patalpa` WHERE pk_Patalpa=?id";
+        var dt =
+                _data.Query(query, _config.GetConnectionString("default"), args =>
+                {
+                    args.Add("?id", MySqlDbType.Int32).Value = pk_Id;
+                });
+        foreach (DataRow item in dt)
+        {
+            patalpa.Pavadinimas = Convert.ToString(item["Pavadinimas"]);
+            patalpa.Adresas = Convert.ToString(item["Adresas"]);
+            patalpa.Talpa = Convert.ToInt32(item["Talpa"]);
+            patalpa.LaisvumoData = Convert.ToDateTime(item["LaisvumoData"]);
+            patalpa.Įranga = Convert.ToString(item["Įranga"]);
+            patalpa.PranesejuSk = Convert.ToInt32(item["PranesejuSk"]);
+            patalpa.pk_Id = Convert.ToInt32(item["pk_Patalpa"]);
+            patalpa.fk_Rezervacija = Convert.ToInt32(item["fk_RezervacijosId"]);
+            pranesejuskaicius = Convert.ToInt32(item["PranesejuSk"]);
+        }
+        if (_dataService.ContainsKey("user"))
+        {
+            user = _dataService.GetData("user") as Vartotojas;
+        }
+    }
+
+
+    void HandleValidSubmit()
+    {
+        string sql = "update `patalpa` set Pavadinimas=?pavad, Adresas=?adres, Talpa=?talpa, LaisvumoData=?ldata, Įranga=?iranga, PranesejuSk=?pransk, fk_RezervacijosId=?fkrez where pk_Patalpa=?id";
+
+        DataAccessMySql.Update(sql, _config.GetConnectionString("default"), args =>
+        {
+            args.Add("?pavad", MySqlDbType.VarChar).Value = patalpa.Pavadinimas;
+            args.Add("?adres", MySqlDbType.VarChar).Value = patalpa.Adresas;
+            args.Add("?talpa", MySqlDbType.Int32).Value = patalpa.Talpa;
+            args.Add("?ldata", MySqlDbType.DateTime).Value = patalpa.LaisvumoData;
+            args.Add("?iranga", MySqlDbType.VarChar).Value = patalpa.Įranga;
+            args.Add("?pransk", MySqlDbType.Int32).Value = patalpa.PranesejuSk;
+            args.Add("?fkrez", MySqlDbType.Int32).Value = patalpa.fk_Rezervacija;
+            args.Add("?id", MySqlDbType.Int32).Value = patalpa.pk_Id;
+
+        });
+        NavigationManager.NavigateTo("/rezervavimas");
+
+    }
+}

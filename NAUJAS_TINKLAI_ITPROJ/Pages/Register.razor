@@ -1,0 +1,176 @@
+﻿@page "/register"
+
+@inject DataAccessMySql _data
+@inject IConfiguration _config
+@inject NavigationManager NavigationManager
+@inject DataService _dataService
+
+<h3>Register</h3>
+<button @onclick="ShowOrganizerRegistrationForm">Konferencijos Organizatorius</button>
+<button @onclick="ShowSpeakerRegistrationForm">Pranešėjas</button>
+
+<div>
+  @if (ShowOrganizerForm)
+  {
+    <!-- Form for Konferencijos Organizatorius -->
+    <form>
+      <label for="name">Vardas:</label><br />
+            <input type="text" id="name" @bind="vartotojas.Vardas" required /><br />
+      <label for="surname">Pavarde:</label><br />
+            <input type="text" id="surname" @bind="vartotojas.Pavarde" required /><br />
+      <label for="email">El. paštas:</label><br />
+            <input type="email" id="email" @bind="vartotojas.ElPastas" required /><br />
+      <label for="password">Slaptažodis:</label><br />
+            <input type="password" id="password" @bind="vartotojas.Slaptazodis" required /><br />
+      <label for="birthday">Gimimo data:</label><br />
+            <input type="date" id="birthday" @bind="vartotojas.GimimoData" required /><br />
+      <button @onclick="ProcessOrganizatorius" type="submit">Submit</button>
+    </form>
+  }
+    else if (ShowSpeakerForm)
+    {
+        <!-- Form for Pranešėjas -->
+            <form>
+          <label for="name">Vardas:</label><br />
+            <input type="text" id="name" @bind="vartotojas.Vardas" required /><br />
+          <label for="surname">Pavarde:</label><br />
+            <input type="text" id="surname" @bind="vartotojas.Pavarde" required /><br />
+          <label for="email">El. paštas:</label><br />
+            <input type="email" id="email" @bind="vartotojas.ElPastas" required /><br />
+          <label for="password">Slaptažodis:</label><br />
+            <input type="password" id="password" @bind="vartotojas.Slaptazodis" required/><br />
+          <label for="birthday">Gimimo data:</label><br />
+            <input type="date" id="birthday" @bind="vartotojas.GimimoData" required/><br />
+          <label for="theme">Tema:</label><br />
+            <input type="text" id="theme" @bind="auditorijosTema" required /><br />
+          <label for="auditorija">Auditorija:</label><br />
+            <input type="text" id="auditorija" @bind="auditorijosPavadinimas" required /><br />
+          <label for="room-name">Pavadinimas:</label><br />
+          <!-- Dropdown list for Pavadinimas -->
+          <select id="room-name">
+            @foreach (var room in Rooms)
+            {
+                <option value="@room.Pavadinimas">@room.Pavadinimas</option>
+                patalposPavadinimas = @room.Pavadinimas;
+                patalposId = @room.pk_Id;
+            }
+          </select>
+          <br />
+          <br />
+            <button @onclick="ProcessPranesejas" type="submit">Submit</button>
+        </form>
+    }
+</div>
+
+@code {
+    string patalposPavadinimas = "";
+    string auditorijosPavadinimas = "";
+    string auditorijosTema = "";
+    int patalposId = 0;
+    Vartotojas vartotojas = new Vartotojas();
+    Vartotojas vartotojasNew = new Vartotojas();
+    List<Patalpa> Rooms { get; set; } = new List<Patalpa>();
+    // Flag to show/hide the form for Konferencijos Organizatorius
+    bool ShowOrganizerForm { get; set; } = false;
+
+    // Flag to show/hide the form for Pranešėjas
+    bool ShowSpeakerForm { get; set; } = false;
+
+    // Method to show the form for Konferencijos Organizatorius
+    void ShowOrganizerRegistrationForm()
+    {
+        ShowOrganizerForm = true;
+        ShowSpeakerForm = false;
+    }
+
+    // Method to show the form for Pranešėjas
+    void ShowSpeakerRegistrationForm()
+    {
+        ShowOrganizerForm = false;
+        ShowSpeakerForm = true;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        string sql = "select p.Pavadinimas, p.Adresas, p.Talpa, p.LaisvumoData, p.Įranga, p.PranesejuSk, p.pk_Patalpa, p.fk_RezervacijosId from patalpa p LEFT JOIN rezervacija r ON p.fk_RezervacijosId = r.pk_Rezervacija WHERE (r.ArRezervuota = false OR r.ArRezervuota IS NULL) AND (SELECT COUNT(*) FROM auditorija a WHERE a.fk_PatalpaId = p.pk_Patalpa) < p.PranesejuSk";
+        var dt = _data.Query(sql, _config.GetConnectionString("default"));
+        foreach (DataRow item in dt)
+        {
+            Rooms.Add(new Patalpa
+                {
+                    Pavadinimas = Convert.ToString(item["Pavadinimas"]),
+                    Adresas = Convert.ToString(item["Adresas"]),
+                    Talpa = Convert.ToInt32(item["Talpa"]),
+                    LaisvumoData = Convert.ToDateTime(item["LaisvumoData"]),
+                    Įranga = Convert.ToString(item["Įranga"]),
+                    PranesejuSk = Convert.ToInt32(item["PranesejuSk"]),
+                    pk_Id = Convert.ToInt32(item["pk_Patalpa"]),
+                    fk_Rezervacija = Convert.ToInt32(item["fk_RezervacijosId"])
+                });
+        }
+    }
+
+    void ProcessOrganizatorius()
+    {
+        vartotojas.Privilegijos = "Konferencijos organizatorius";
+        string sql =
+        "insert into vartotojas (Vardas, Pavardė, ElPaštas, Slaptažodis, GimimoData, Privilegijos) values (?vardas, ?pavarde, ?elpastas, ?slaptazodis, ?gimimodata, ?privilegijos)";
+        DataAccessMySql.Insert(sql, _config.GetConnectionString("default"), args =>
+        {
+            args.Add("?vardas", MySqlDbType.VarChar).Value = vartotojas.Vardas;
+            args.Add("?pavarde", MySqlDbType.VarChar).Value = vartotojas.Pavarde;
+            args.Add("?elpastas", MySqlDbType.VarChar).Value = vartotojas.ElPastas;
+            args.Add("?slaptazodis", MySqlDbType.VarChar).Value = vartotojas.Slaptazodis;
+            args.Add("?gimimodata", MySqlDbType.DateTime).Value = vartotojas.GimimoData;
+            args.Add("?privilegijos", MySqlDbType.VarChar).Value = vartotojas.Privilegijos;
+        });
+
+        NavigationManager.NavigateTo("/landing");
+    }
+
+    void ProcessPranesejas()
+    {
+        vartotojas.Privilegijos = "Pranešėjas";
+        string sql =
+        "insert into vartotojas (Vardas, Pavardė, ElPaštas, Slaptažodis, GimimoData, Privilegijos) values (?vardas, ?pavarde, ?elpastas, ?slaptazodis, ?gimimodata, ?privilegijos)";
+        DataAccessMySql.Insert(sql, _config.GetConnectionString("default"), args =>
+        {
+            args.Add("?vardas", MySqlDbType.VarChar).Value = vartotojas.Vardas;
+            args.Add("?pavarde", MySqlDbType.VarChar).Value = vartotojas.Pavarde;
+            args.Add("?elpastas", MySqlDbType.VarChar).Value = vartotojas.ElPastas;
+            args.Add("?slaptazodis", MySqlDbType.VarChar).Value = vartotojas.Slaptazodis;
+            args.Add("?gimimodata", MySqlDbType.DateTime).Value = vartotojas.GimimoData;
+            args.Add("?privilegijos", MySqlDbType.VarChar).Value = vartotojas.Privilegijos;
+        });
+
+        var query = $@"SELECT * FROM `vartotojas` WHERE ElPaštas=?elpastas";
+        var dt =
+                _data.Query(query, _config.GetConnectionString("default"), args =>
+                {
+                    args.Add("?elpastas", MySqlDbType.VarChar).Value = vartotojas.ElPastas;
+                });
+        foreach (DataRow item in dt)
+        {
+            vartotojasNew.pk_Id = Convert.ToInt32(item["pk_Vartotojas"]);
+            vartotojasNew.Vardas = Convert.ToString(item["Vardas"]);
+            vartotojasNew.Pavarde = Convert.ToString(item["Pavardė"]);
+            vartotojasNew.ElPastas = Convert.ToString(item["ElPaštas"]);
+            vartotojasNew.Slaptazodis = Convert.ToString(item["Slaptažodis"]);
+            vartotojasNew.GimimoData = Convert.ToDateTime(item["GimimoData"]);
+            vartotojasNew.Privilegijos = Convert.ToString(item["Privilegijos"]);
+        }
+
+        string sql2 =
+        "insert into auditorija (Pavadinimas, fk_PatalpaId, Tema, fk_IdVartotojo) values (?pavadinimas, ?fkpatalpa, ?tema, ?fkvartotojo)";
+        DataAccessMySql.Insert(sql2, _config.GetConnectionString("default"), args =>
+        {
+            args.Add("?pavadinimas", MySqlDbType.VarChar).Value = auditorijosPavadinimas;
+            args.Add("?fkpatalpa", MySqlDbType.Int32).Value = patalposId;
+            args.Add("?tema", MySqlDbType.VarChar).Value = auditorijosTema;
+            args.Add("?fkvartotojo", MySqlDbType.Int32).Value = vartotojasNew.pk_Id;
+        });
+
+        NavigationManager.NavigateTo("/landing");
+    }
+}
+

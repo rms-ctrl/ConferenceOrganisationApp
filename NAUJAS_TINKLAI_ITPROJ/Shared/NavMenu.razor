@@ -1,0 +1,97 @@
+﻿@inject DataService _dataService
+@inject NavigationManager NavigationManager
+
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">Konferencijų sistema</a>
+        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+</div>
+
+<div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
+    <nav class="flex-column">
+        @if (_dataService.ContainsKey("user") && (user.Privilegijos == "Konferencijų organizatorius" || user.Privilegijos == "Pranešėjas" || user.Privilegijos == "Administratorius"))
+        {
+            <div class="nav-item px-3">
+            <NavLink class="nav-link" href="/" Match="NavLinkMatch.All">
+                    <span class="oi oi-account-logout" aria-hidden="true"></span> Atsijungti
+            </NavLink>
+            </div>
+        }
+        else
+        {
+            <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span class="oi oi-account-login" aria-hidden="true"></span> Prisijungimas
+            </NavLink>
+            </div>
+        }
+       
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="/konferencijos" Match="NavLinkMatch.All">
+                <span class="oi oi-audio" aria-hidden="true"></span> Konferencijos
+            </NavLink>
+        </div>
+        @if (_dataService.ContainsKey("user") && (user.Privilegijos == "Konferencijų organizatorius" || user.Privilegijos == "Pranešėjas" || user.Privilegijos == "Administratorius"))
+        {
+            <div class="nav-item px-3">
+            <NavLink class="nav-link" href="/rezervavimas" Match="NavLinkMatch.All">
+                <span class="oi oi-home" aria-hidden="true"></span> Patalpų Rezervavimas
+            </NavLink>
+            </div>
+        }
+        @if (_dataService.ContainsKey("user") && (user.Privilegijos == "Administratorius"))
+        {
+             <div class="nav-item px-3">
+            <NavLink class="nav-link" href="/admin" Match="NavLinkMatch.All">
+                <span class="oi oi-dial" aria-hidden="true"></span> Admin puslapis
+            </NavLink>
+            </div>
+        }
+       
+    </nav>
+</div>
+
+@code {
+    private bool collapseNavMenu = true;
+
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    Vartotojas user = new Vartotojas();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (_dataService.ContainsKey("user"))
+        {
+            var newUser = _dataService.GetData("user") as Vartotojas;
+            if (newUser != user)
+            {
+                // Update the user value and trigger a re-render
+                user = newUser;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private void ToggleNavMenu()
+    {   
+        collapseNavMenu = !collapseNavMenu;
+    }
+
+    /*protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Check if the user value has changed
+        if (_dataService.ContainsKey("user"))
+        {
+            var newUser = _dataService.GetData("user") as Vartotojas;
+            if (newUser != user)
+            {
+                // Update the user value and trigger a re-render
+                user = newUser;
+                StateHasChanged();
+            }
+        }
+    }*/
+}

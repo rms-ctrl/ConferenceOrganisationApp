@@ -1,0 +1,128 @@
+﻿@page "/admin"
+
+@inject DataAccessMySql _data
+@inject IConfiguration _config
+@inject NavigationManager NavigationManager
+@inject DataService _dataService
+
+<style>
+    table {
+        border: 1px solid black;
+        border-collapse: collapse;
+    }
+    th, td {
+        border: 1px solid black;
+        padding: 5px;
+    }
+    th {
+        background-color: lightgray;
+    }
+    tr:hover {
+        background-color: lightblue;
+    }
+</style>
+
+@if (_dataService.ContainsKey("user") && (user.Privilegijos == "Administratorius"))
+{
+
+    <h3>Administratoriaus puslapis</h3>
+
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Vardas</th>
+            <th>Pavarde</th>
+            <th>El. paštas</th>
+            <th>Slaptažodis</th>
+            <th>Gimimo data</th>
+            <th>Privilegijos</th>
+            <th></th>
+        </tr>
+        @foreach (var vartotojas in vartotojai)
+        {
+            <tr>
+                <td>@vartotojas.pk_Id</td>
+                <td>@vartotojas.Vardas</td>
+                <td>@vartotojas.Pavarde</td>
+                <td>@vartotojas.ElPastas</td>
+                <td>@vartotojas.Slaptazodis</td>
+                <td>@vartotojas.GimimoData.ToString("dd/MM/yyyy")</td>
+                <td>@vartotojas.Privilegijos</td>
+                <td>
+                    <!-- Add an Edit button for each Vartotojas model -->
+                    <button @onclick="() => EditVartotojas(vartotojas.pk_Id)">Redaguoti</button>
+                    <button @onclick="() => Delete(vartotojas.pk_Id)">Naikinti naudotoją</button>
+                </td>
+            </tr>
+        }
+    </table>
+}
+else
+{
+    <center><h3>Neturite teisių!</h3></center>
+}
+@code {
+        List<Vartotojas> vartotojai = new List<Vartotojas>();
+        List<Rezervacija> rezervacijos = new List<Rezervacija>();
+        Vartotojas user = new Vartotojas();
+    protected override async Task OnInitializedAsync()
+    {
+        string sql = "select * from vartotojas";
+        var dt = _data.Query(sql, _config.GetConnectionString("default"));
+        foreach (DataRow item in dt)
+        {
+            vartotojai.Add(new Vartotojas
+                {
+                    pk_Id = Convert.ToInt32(item["pk_Vartotojas"]),
+                    Vardas = Convert.ToString(item["Vardas"]),
+                    Pavarde = Convert.ToString(item["Pavardė"]),
+                    ElPastas = Convert.ToString(item["ElPaštas"]),
+                    Slaptazodis = Convert.ToString(item["Slaptažodis"]),
+                    GimimoData = Convert.ToDateTime(item["GimimoData"]),
+                    Privilegijos = Convert.ToString(item["Privilegijos"])
+                });
+        }
+
+        string sql2 = "select * from rezervacija";
+        var dt2 = _data.Query(sql2, _config.GetConnectionString("default"));
+        foreach (DataRow item in dt2)
+        {
+            rezervacijos.Add(new Rezervacija
+                {
+                    pk_Id = Convert.ToInt32(item["pk_Rezervacija"]),
+                    fk_VartotojoId = Convert.ToInt32(item["fk_VartotojoId"]),
+                    arRezervuota = Convert.ToBoolean(item["ArRezervuota"])
+                });
+        }
+
+        if (_dataService.ContainsKey("user"))
+        {
+            user = _dataService.GetData("user") as Vartotojas;
+        }
+    }
+
+    void EditVartotojas(int pk_Id)
+    {
+        NavigationManager.NavigateTo($"/admin/Edit/{pk_Id}");
+    }
+
+    void Delete(int Id)
+    {
+        var count = rezervacijos.Count(r => r.pk_Id == Id);
+        if (count <= 0)
+        {
+            string sql1 = "delete from `auditorija` where fk_IdVartotojo=?id";
+            DataAccessMySql.Delete(sql1, _config.GetConnectionString("default"), args =>
+            {
+                args.Add("?id", MySqlDbType.Int32).Value = Id;
+            });
+
+            string sql = "delete from `vartotojas` where pk_Vartotojas=?id";
+            DataAccessMySql.Delete(sql, _config.GetConnectionString("default"), args =>
+            {
+                args.Add("?id", MySqlDbType.Int32).Value = Id;
+            });
+
+        }
+    }
+}

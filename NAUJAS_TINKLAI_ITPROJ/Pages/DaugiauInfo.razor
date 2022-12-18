@@ -1,0 +1,218 @@
+﻿@page "/konferencijos/Info/{pk_Id:int}"
+
+@inject DataAccessMySql _data
+@inject IConfiguration _config
+@inject NavigationManager NavigationManager
+@inject DataService _dataService
+
+<style>
+    table {
+        border-collapse: collapse;
+        width: 100%;
+    }
+
+    td, th {
+        border: 1px solid #dddddd;
+        text-align: left;
+        padding: 8px;
+    }
+
+    tr:nth-child(even) {
+        background-color: #dddddd;
+    }
+
+    td.bold {
+        font-weight: bold;
+    }
+</style>
+
+@if (headeris.Nuotrauka != null && isrinktiPranesejai.Count > 0 )
+{
+    <center>
+        <h3>Daugiau informacijos apie konferenciją "@konferencija.Pavadinimas"</h3>
+        <br />
+        <br />
+        <img src="@headeris.Nuotrauka" />
+    </center>
+    <br />
+    <table>
+        <tbody>
+            <tr>
+                <td class="bold">Pavadinimas:</td>
+                <td>@konferencija.Pavadinimas</td>
+            </tr>
+            <tr>
+                <td class="bold">Data:</td>
+                <td>@konferencija.Data</td>
+            </tr>
+            <tr>
+                <td class="bold">Trukmė:</td>
+                <td>@konferencija.Trukmė valandų</td>
+            </tr>
+            <tr>
+                <td class="bold">Kaina:</td>
+                <td>@konferencija.Kaina</td>
+            </tr>
+            <tr>
+                <td class="bold">Aprašymas:</td>
+                <td>@konferencija.Aprasymas</td>
+            </tr>
+            <tr>
+                <td class="bold">Telefono numeris:</td>
+                <td>@konferencija.TelNr</td>
+            </tr>
+        </tbody>
+    </table>
+    <br />
+    <table>
+        <thead>
+            <tr>
+                <th>Auditorijos pavadinimas</th>
+                <th>Tema</th>
+                <th>Pranešėjo vardas</th>
+                <th>Pranešėjo pavardė</th>
+                <th>Laikas</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var speaker in isrinktiPranesejai)
+            {
+                var auditorija = auditorijos.FirstOrDefault(a => a.fk_VartotojoId == speaker.pk_Id);
+                if (auditorija == null)
+                {
+                    continue;
+                }
+
+                <tr>
+                    <td>@auditorija.Pavadinimas</td>
+                    <td>@auditorija.Tema</td>
+                    <td>@speaker.Vardas</td>
+                    <td>@speaker.Pavarde</td>
+                    <td>@currentTime.ToString("hh\\:mm") - @currentTime.Add(TimeSpan.FromMinutes(totalTimePerSpeaker)).ToString("hh\\:mm")  su @breakTime min. trukmės pertrauką.</td>
+                </tr>
+                currentTime = currentTime.Add(TimeSpan.FromMinutes(totalTimePerSpeaker));
+            }
+        </tbody>
+    </table>
+    <br />
+    <br />
+    <br />
+} else
+{
+    <center>
+    <h3> Šiam puslapiui dar nėra sukurtas Headeris! </h3>
+    <h3> Arba nėra pranešėjų! </h3>
+    </center>
+}
+
+@code {
+    [Parameter]
+    public int pk_Id { get; set; }
+
+    Konferencija konferencija = new Konferencija();
+    Headeris headeris = new Headeris();
+    List<Auditorija> auditorijos = new List<Auditorija>();
+    List<Vartotojas> pranesejai = new List<Vartotojas>();
+    List<Vartotojas> isrinktiPranesejai = new List<Vartotojas>();
+    TimeSpan startTime, currentTime;
+    int duration, timePerSpeaker, breakTime, totalTimePerSpeaker;
+    protected override async Task OnInitializedAsync()
+    {
+        var query = $@"SELECT * FROM `konferencija` WHERE pk_Konferencija=?id";
+        var dt =
+                _data.Query(query, _config.GetConnectionString("default"), args =>
+                {
+                    args.Add("?id", MySqlDbType.Int32).Value = pk_Id;
+                });
+        foreach (DataRow item in dt)
+        {
+            konferencija.pk_Id = Convert.ToInt32(item["pk_Konferencija"]);
+            konferencija.Pavadinimas = Convert.ToString(item["Pavadinimas"]);
+            konferencija.Data = Convert.ToDateTime(item["Data"]);
+            konferencija.Trukmė = Convert.ToInt32(item["Trukmė"]);
+            konferencija.Kaina = Convert.ToDouble(item["Kaina"]);
+            konferencija.Aprasymas = Convert.ToString(item["Aprašymas"]);
+            konferencija.TelNr = Convert.ToString(item["TelNr"]);
+            konferencija.fk_PatalposId = Convert.ToInt32(item["fk_PatalposId"]);
+        }
+
+        var query1 = $@"SELECT * FROM `headeris` WHERE fk_KonferencijaId=?id";
+        var dt1 =
+                _data.Query(query1, _config.GetConnectionString("default"), args =>
+                {
+                    args.Add("?id", MySqlDbType.Int32).Value = pk_Id;
+                });
+        foreach (DataRow item in dt1)
+        {
+            headeris.pk_Id = Convert.ToInt32(item["pk_Headeris"]);
+            headeris.Nuotrauka = Convert.ToString(item["Nuotrauka"]);
+            headeris.fk_KonferencijosId = Convert.ToInt32(item["fk_KonferencijaId"]);
+        }
+
+        Console.WriteLine(headeris.Nuotrauka);
+        string query2 = $@"SELECT * FROM `auditorija` WHERE fk_PatalpaId=?id";
+        var dt2 =
+                _data.Query(query2, _config.GetConnectionString("default"), args =>
+                {
+                    args.Add("?id", MySqlDbType.Int32).Value = konferencija.fk_PatalposId;
+                });
+        foreach (DataRow item in dt2)
+        {
+            auditorijos.Add(new Auditorija
+                {
+                    pk_Id = Convert.ToInt32(item["auditorija_Id"]),
+                    Pavadinimas = Convert.ToString(item["Pavadinimas"]),
+                    fk_PatalpaId = Convert.ToInt32(item["fk_PatalpaId"]),
+                    Tema = Convert.ToString(item["Tema"]),
+                    fk_VartotojoId = Convert.ToInt32(item["fk_IdVartotojo"])
+                });
+        }
+
+        string query3 = "select * from vartotojas";
+        var dt3 = _data.Query(query3, _config.GetConnectionString("default"));
+        foreach (DataRow item in dt3)
+        {
+            pranesejai.Add(new Vartotojas
+                {
+                    pk_Id = Convert.ToInt32(item["pk_Vartotojas"]),
+                    Vardas = Convert.ToString(item["Vardas"]),
+                    Pavarde = Convert.ToString(item["Pavardė"]),
+                    ElPastas = Convert.ToString(item["ElPaštas"]),
+                    Slaptazodis = Convert.ToString(item["Slaptažodis"]),
+                    GimimoData = Convert.ToDateTime(item["GimimoData"]),
+                    Privilegijos = Convert.ToString(item["Privilegijos"])
+                });
+        }
+
+
+        foreach (var auditorija in auditorijos)
+        {
+            var speaker = pranesejai.FirstOrDefault(s => s.pk_Id == auditorija.fk_VartotojoId);
+            if (speaker != null)
+            {
+                isrinktiPranesejai.Add(speaker);
+            }
+        }
+
+        if (isrinktiPranesejai.Count > 0)
+        {
+            startTime = konferencija.Data.TimeOfDay;
+
+            // Calculate the duration of the conference in minutes
+            duration = konferencija.Trukmė * 60;
+            breakTime = 15;
+            // Calculate the time for each speaker in minutes
+            timePerSpeaker = (duration / isrinktiPranesejai.Count) - breakTime;
+
+            // Calculate the time for each break in minutes
+   
+
+            // Calculate the total time for each speaker, including the break
+            totalTimePerSpeaker = timePerSpeaker + breakTime;
+
+            // Set the current time to the starting time of the conference
+            currentTime = startTime;
+        }
+        
+    }
+}

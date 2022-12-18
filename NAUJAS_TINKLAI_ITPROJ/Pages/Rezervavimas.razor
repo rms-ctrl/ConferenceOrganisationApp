@@ -1,0 +1,165 @@
+﻿@page "/rezervavimas"
+
+@inject DataAccessMySql _data
+@inject IConfiguration _config
+@inject NavigationManager NavigationManager
+@inject DataService _dataService
+
+
+<style>
+    table {
+        border: 1px solid black;
+        border-collapse: collapse;
+    }
+    th, td {
+        border: 1px solid black;
+        padding: 5px;
+    }
+    th {
+        background-color: lightgray;
+    }
+    tr:hover {
+        background-color: lightblue;
+    }
+</style>
+
+@if (_dataService.ContainsKey("user"))
+{
+
+
+    <h3>Rezervavimas</h3>
+    @if (user.Privilegijos == "Administratorius")
+    {
+        <button @onclick="() => CreatePatalpa()">Kurti patalpą</button>
+        <br />
+    }
+    <br />
+    <form>
+        <label for="talpa">Talpa:</label> <br />
+        <input type="number" id="talpa" @bind="talpaFilter" /><br />
+
+        <label for="laisvumas">Laisvumo data:</label> <br />
+        <input type="date" id="laisvumas" @bind="laisvumoDataFilter" required /><br />
+
+        <label for="iranga">Įranga:</label><br />
+        <input type="text" id="iranga" @bind="irangaFilter" /> <br />
+
+
+    </form>
+    <br />
+    <table>
+        <thead>
+            <tr>
+                <th>Pavadinimas</th>
+                <th>Adresas</th>
+                <th>Talpa</th>
+                <th>Laisvumo data</th>
+                <th>Įranga</th>
+                <th>Pranėšėjų skaičius</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var patalpa in patalpos.Where(p =>
+                  (talpaFilter == 0 || p.Talpa == talpaFilter) &&
+                  (laisvumoDataFilter == default || p.LaisvumoData > laisvumoDataFilter) &&
+                  (string.IsNullOrEmpty(irangaFilter) || p.Įranga.Contains(irangaFilter))))
+            {
+                <tr>
+                    <td>@patalpa.Pavadinimas</td>
+                    <td>@patalpa.Adresas</td>
+                    <td>@patalpa.Talpa</td>
+                    <td>@(
+                        patalpa.LaisvumoData.HasValue ? patalpa.LaisvumoData.Value.ToString("dd/MM/yyyy") : string.Empty
+                        )</td>
+                    <td>@patalpa.Įranga</td>
+                    <td>@patalpa.PranesejuSk</td>
+                    <td><button @onclick="() => Reserve(patalpa.fk_Rezervacija)">Rezervuoti patalpą</button>
+                    @if(user.Privilegijos == "Administratorius")
+                    {
+                        <button @onclick="() => Edit(patalpa.pk_Id)">Redaguoti patalpą</button>
+                        <button @onclick="() => Delete(patalpa.pk_Id, patalpa.fk_Rezervacija)">Naikinti patalpą</button>
+                    }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <center><h3>Prisijunkite su reikalingomis privilegijomis</h3></center>
+}
+@code {
+    List<Patalpa> patalpos = new List<Patalpa>();
+    int talpaFilter = 0;
+    DateTime laisvumoDataFilter = default;
+    string irangaFilter = string.Empty;
+    Vartotojas user = new Vartotojas();
+    protected override async Task OnInitializedAsync()
+    {
+        if (_dataService.ContainsKey("user"))
+        {
+            user = _dataService.GetData("user") as Vartotojas; 
+        }
+
+
+        string sql = "select p.* from patalpa p inner join rezervacija r on p.fk_RezervacijosId = r.pk_Rezervacija where r.ArRezervuota = 0";
+        var dt = _data.Query(sql, _config.GetConnectionString("default"));
+        foreach (DataRow item in dt)
+        {
+            patalpos.Add(new Patalpa
+                {
+                    Pavadinimas = Convert.ToString(item["Pavadinimas"]),
+                    Adresas = Convert.ToString(item["Adresas"]),
+                    Talpa = Convert.ToInt32(item["Talpa"]),
+                    LaisvumoData = Convert.ToDateTime(item["LaisvumoData"]),
+                    Įranga = Convert.ToString(item["Įranga"]),
+                    PranesejuSk = Convert.ToInt32(item["PranesejuSk"]),
+                    pk_Id = Convert.ToInt32(item["pk_Patalpa"]),
+                    fk_Rezervacija = Convert.ToInt32(item["fk_RezervacijosId"])
+                });
+        }
+
+
+    }
+
+    void Reserve(int fk_rezervacija)
+    {
+        string sql = "update `rezervacija` set fk_VartotojoId=?vartfkid, ArRezervuota=?rezerv where pk_Rezervacija=?id";
+        DataAccessMySql.Update(sql, _config.GetConnectionString("default"), args =>
+        {
+            args.Add("?vartfkid", MySqlDbType.Int32).Value = user.pk_Id;
+            args.Add("?rezerv", MySqlDbType.Int32).Value = 1;
+            args.Add("?id", MySqlDbType.Int32).Value = fk_rezervacija;
+
+        });
+    }
+
+    void Edit(int pk_id)
+    {
+        NavigationManager.NavigateTo($"/rezervavimas/Edit/{pk_id}");
+    }
+
+    void Delete(int pk_Id, int fk_Id)
+    {
+        string sql = "delete from `patalpa` where pk_Patalpa=?id";
+        DataAccessMySql.Delete(sql, _config.GetConnectionString("default"), args =>
+        {
+            args.Add("?id", MySqlDbType.Int32).Value = pk_Id;
+        });
+
+        string sql1 = "delete from `rezervacija` where pk_Rezervacija=?id";
+        DataAccessMySql.Delete(sql1, _config.GetConnectionString("default"), args =>
+        {
+            args.Add("?id", MySqlDbType.Int32).Value = fk_Id;
+        });
+
+        NavigationManager.NavigateTo("/rezervavimas");
+    }
+
+    void CreatePatalpa()
+    {
+        NavigationManager.NavigateTo("/patalpacreate");
+    }
+}

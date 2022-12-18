@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33122.133
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NAUJAS_TINKLAI_ITPROJ", "NAUJAS_TINKLAI_ITPROJ\NAUJAS_TINKLAI_ITPROJ.csproj", "{241955BD-F2B1-4A87-830D-D5265CB192FE}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DataLibrary", "DataLibrary\DataLibrary.csproj", "{651888F0-18C5-4BCC-8865-92BC900364BA}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{241955BD-F2B1-4A87-830D-D5265CB192FE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{241955BD-F2B1-4A87-830D-D5265CB192FE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{241955BD-F2B1-4A87-830D-D5265CB192FE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{241955BD-F2B1-4A87-830D-D5265CB192FE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{651888F0-18C5-4BCC-8865-92BC900364BA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{651888F0-18C5-4BCC-8865-92BC900364BA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{651888F0-18C5-4BCC-8865-92BC900364BA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{651888F0-18C5-4BCC-8865-92BC900364BA}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {F2D9686F-694A-476E-895C-6A9A7506D136}
+	EndGlobalSection
+EndGlobal

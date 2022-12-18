@@ -1,0 +1,101 @@
+﻿@page "/admin/Edit/{pk_Id:int}"
+
+@inject DataAccessMySql _data
+@inject IConfiguration _config
+@inject NavigationManager NavigationManager
+@inject DataService _dataService
+
+@if (_dataService.ContainsKey("user") && (user.Privilegijos == "Administratorius"))
+{
+    <h3>Vartotojo redagavimas</h3>
+
+    <form @onsubmit="HandleValidSubmit">
+        <div>
+            <label for="Vardas">Vardas:</label><br />
+            <input type="text" id="Vardas" @bind-value="vartotojas.Vardas" required />
+        </div>
+        <div>
+            <label for="Pavarde">Pavarde:</label><br />
+            <input type="text" id="Pavarde" @bind-value="vartotojas.Pavarde" required />
+        </div>
+        <div>
+            <label for="ElPastas">El. paštas:</label><br />
+            <input type="email" id="ElPastas" @bind-value="vartotojas.ElPastas" required />
+        </div>
+        <div>
+            <label for="Slaptazodis">Slaptažodis:</label><br />
+            <input type="password" id="Slaptazodis" @bind-value="vartotojas.Slaptazodis" required />
+        </div>
+        <div>
+            <label for="GimimoData">Gimimo data:</label><br />
+            <input type="date" id="GimimoData" @bind-value="vartotojas.GimimoData" required />
+        </div>
+        <div>
+            <label for="Privilegijos">Privilegijos:</label><br />
+            <select id="Privilegijos" @bind="vartotojas.Privilegijos" required>
+                <option value="Administratorius">Administratorius</option>
+                <option value="Konferencijos organizatorius">Konferencijos organizatorius</option>
+                <option value="Pranešėjas">Pranešėjas</option>
+            </select>
+        </div>
+        <br />
+        <div>
+            <input type="submit" value="Saugoti" />
+        </div>
+    </form>
+}
+else
+{
+    <center><h3> Neturite teisių!</h3></center>
+}
+@code {
+    [Parameter]
+    public int pk_Id { get; set; }
+
+    Vartotojas vartotojas = new Vartotojas();
+    Vartotojas user = new Vartotojas();
+    protected override void OnInitialized()
+    {
+        var query = $@"SELECT * FROM `vartotojas` WHERE pk_Vartotojas=?id";
+        var dt =
+                _data.Query(query, _config.GetConnectionString("default"), args =>
+                {
+                    args.Add("?id", MySqlDbType.Int32).Value = pk_Id;
+                });
+        foreach (DataRow item in dt)
+        {
+            vartotojas.pk_Id = Convert.ToInt32(item["pk_Vartotojas"]);
+            vartotojas.Vardas = Convert.ToString(item["Vardas"]);
+            vartotojas.Pavarde = Convert.ToString(item["Pavardė"]);
+            vartotojas.ElPastas = Convert.ToString(item["ElPaštas"]);
+            vartotojas.Slaptazodis = Convert.ToString(item["Slaptažodis"]);
+            vartotojas.GimimoData = Convert.ToDateTime(item["GimimoData"]);
+            vartotojas.Privilegijos = Convert.ToString(item["Privilegijos"]);
+        }
+
+        if (_dataService.ContainsKey("user"))
+        {
+            user = _dataService.GetData("user") as Vartotojas;
+        }
+    }
+
+
+    void HandleValidSubmit()
+    {
+        string sql = "update `vartotojas` set Vardas=?vardas, Pavardė=?pavarde, ElPaštas=?elpastas, Slaptažodis=?slaptazodis, GimimoData=?gimimodata, Privilegijos=?privilegijos where pk_Vartotojas=?id";
+
+        DataAccessMySql.Update(sql, _config.GetConnectionString("default"), args =>
+        {
+            args.Add("?vardas", MySqlDbType.VarChar).Value = vartotojas.Vardas;
+            args.Add("?pavarde", MySqlDbType.VarChar).Value = vartotojas.Pavarde;
+            args.Add("?elpastas", MySqlDbType.VarChar).Value = vartotojas.ElPastas;
+            args.Add("?slaptazodis", MySqlDbType.VarChar).Value = vartotojas.Slaptazodis;
+            args.Add("?gimimodata", MySqlDbType.DateTime).Value = vartotojas.GimimoData;
+            args.Add("?privilegijos", MySqlDbType.VarChar).Value = vartotojas.Privilegijos;
+            args.Add("?id", MySqlDbType.Int32).Value = vartotojas.pk_Id;
+
+        });
+        NavigationManager.NavigateTo("/admin");
+
+    }
+}

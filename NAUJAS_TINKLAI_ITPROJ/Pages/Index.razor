@@ -1,0 +1,70 @@
+﻿@page "/"
+
+@inject DataAccessMySql _data
+@inject IConfiguration _config
+@inject NavigationManager NavigationManager
+@inject DataService _dataService
+
+<h2>Prisijungimas</h2>
+
+<form @onsubmit="HandleSubmit">
+    <label for="email">Elektroninis paštas:</label><br />
+    <input type="email" id="email" @bind="Email" required /><br />
+    <label for="password">Slaptažodis:</label><br />
+    <input type="password" id="password" @bind="Password" required/><br /><br />
+    <button type="submit">Prisijungti</button>
+</form>
+<br />
+<a href="/register">Neturite paskyros? Registruokitės čia!</a>
+<br />
+<br />
+<h6>Konferencijų organizavimo portalas</h6>
+<h6>Domas Baltrušaitis IFF-0/7</h6>
+@code {
+    private string Email { get; set; }
+    private string Password { get; set; }
+    private Vartotojas gevm = new Vartotojas();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _dataService.RemoveData("user");
+    }
+
+    private async Task HandleSubmit()
+    {
+        var query = $@"SELECT * FROM `vartotojas` WHERE ElPaštas=?elpastas";
+
+        var dt =
+            _data.Query(query, _config.GetConnectionString("default"), args =>
+            {
+                args.Add("?elpastas", MySqlDbType.VarChar).Value = Email;
+            });
+
+        if (dt.Count > 0)
+        {
+            foreach (DataRow item in dt)
+            {
+                gevm.pk_Id = Convert.ToInt32(item["pk_Vartotojas"]);
+                gevm.Vardas = Convert.ToString(item["Vardas"]);
+                gevm.Pavarde = Convert.ToString(item["Pavardė"]);
+                gevm.ElPastas = Convert.ToString(item["ElPaštas"]);
+                gevm.Slaptazodis = Convert.ToString(item["Slaptažodis"]);
+                gevm.GimimoData = Convert.ToDateTime(item["GimimoData"]);
+                gevm.Privilegijos = Convert.ToString(item["Privilegijos"]);
+            }
+        }
+        gevm.EncryptPassword();
+        bool isVerified = gevm.VerifyPassword(Password);
+
+
+
+        if (isVerified)
+        {
+            _dataService.SetData("user", gevm);
+            NavigationManager.NavigateTo("/landing", true);
+        }
+    }
+
+
+}
+

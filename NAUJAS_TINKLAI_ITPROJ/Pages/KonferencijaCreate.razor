@@ -1,0 +1,110 @@
+﻿@page "/konferencijacreate"
+
+@inject DataAccessMySql _data
+@inject IConfiguration _config
+@inject NavigationManager NavigationManager
+@inject DataService _dataService
+
+@if (_dataService.ContainsKey("user") && (user.Privilegijos == "Administratorius") || (user.Privilegijos == "Konferencijos organizatorius"))
+{
+    <h3>Konferencijos kūrimas</h3>
+
+
+    <form>
+        <label for="name">Pavadinimas:</label><br />
+        <input type="text" id="name" @bind="konferencija.Pavadinimas" required /><br />
+        <label for="date">Data:</label><br />
+        <input type="date" id="date" @bind="konferencija.Data" required /><br />
+        <label for="duration">Trukmė:</label><br />
+        <input type="number" id="duration" @bind="konferencija.Trukmė" required /><br />
+        <label for="price">Kaina:</label><br />
+        <input type="number" id="price" @bind="konferencija.Kaina" required /><br />
+        <label for="description">Aprašymas:</label><br />
+        <input type="text" id="description" @bind="konferencija.Aprasymas" required /><br />
+        <label for="phone">TelNr:</label><br />
+        <input type="text" id="phone" @bind="konferencija.TelNr" required /><br />
+        <label for="fk_PatalposId">Patalpos ID:</label><br />
+        <select id="fk_PatalposId" @bind="konferencija.fk_PatalposId">
+            @foreach (var patalpa in galimosPatalpos)
+            {
+                <option value="@patalpa.pk_Id">@patalpa.Pavadinimas</option>
+            }
+        </select>
+        <br />
+        <br />
+        <button @onclick="CreateNew" type="submit">Submit</button>
+    </form>
+}
+else
+{
+    <center><h3>Jūs neturite teisių!</h3></center>
+}
+@code {
+    Konferencija konferencija = new Konferencija();
+    Vartotojas user = new Vartotojas();
+    List<Konferencija> konferencijos = new List<Konferencija>();
+    List<Patalpa> patalpos = new List<Patalpa>();
+    List<Patalpa> galimosPatalpos = new List<Patalpa>();
+    protected override async Task OnInitializedAsync()
+    {
+        string sql = "select * from konferencija";
+        var dt = _data.Query(sql, _config.GetConnectionString("default"));
+        foreach (DataRow item in dt)
+        {
+            konferencijos.Add(new Konferencija
+                {
+                    Pavadinimas = Convert.ToString(item["Pavadinimas"]),
+                    Data = Convert.ToDateTime(item["Data"]),
+                    Trukmė = Convert.ToInt32(item["Trukmė"]),
+                    Kaina = Convert.ToDouble(item["Kaina"]),
+                    Aprasymas = Convert.ToString(item["Aprašymas"]),
+                    TelNr = Convert.ToString(item["TelNr"]),
+                    pk_Id = Convert.ToInt32(item["pk_Konferencija"]),
+                    fk_PatalposId = Convert.ToInt32(item["fk_PatalposId"])
+                });
+        }
+
+        string sql2 = "select * from patalpa";
+        var dt2 = _data.Query(sql2, _config.GetConnectionString("default"));
+        foreach (DataRow item in dt2)
+        {
+            patalpos.Add(new Patalpa
+                {
+                    Pavadinimas = Convert.ToString(item["Pavadinimas"]),
+                    Adresas = Convert.ToString(item["Adresas"]),
+                    Talpa = Convert.ToInt32(item["Talpa"]),
+                    LaisvumoData = Convert.ToDateTime(item["LaisvumoData"]),
+                    Įranga = Convert.ToString(item["Įranga"]),
+                    PranesejuSk = Convert.ToInt32(item["PranesejuSk"]),
+                    pk_Id = Convert.ToInt32(item["pk_Patalpa"]),
+                    fk_Rezervacija = Convert.ToInt32(item["fk_RezervacijosId"])
+                });
+        }
+        if (_dataService.ContainsKey("user"))
+        {
+            user = _dataService.GetData("user") as Vartotojas;
+        }
+        galimosPatalpos = patalpos.Where(p => !konferencijos.Any(k => k.fk_PatalposId == p.pk_Id)).ToList();
+    }
+
+
+    void CreateNew()
+    {
+        
+      
+        string sql3 =
+        "insert into konferencija (Pavadinimas, Data, Trukmė, Kaina, Aprašymas, TelNr, fk_PatalposId) values (?pavad, ?data, ?trukm, ?kain, ?apras, ?telnr, ?fkpatal)";
+        DataAccessMySql.Insert(sql3, _config.GetConnectionString("default"), args =>
+        {
+            args.Add("?pavad", MySqlDbType.VarChar).Value = konferencija.Pavadinimas;
+            args.Add("?data", MySqlDbType.DateTime).Value = konferencija.Data;
+            args.Add("?trukm", MySqlDbType.Int32).Value = konferencija.Trukmė;
+            args.Add("?kain", MySqlDbType.Double).Value = konferencija.Kaina;
+            args.Add("?apras", MySqlDbType.VarChar).Value = konferencija.Aprasymas;
+            args.Add("?telnr", MySqlDbType.VarChar).Value = konferencija.TelNr;
+            args.Add("?fkpatal", MySqlDbType.Int32).Value = konferencija.fk_PatalposId;
+        });
+
+        NavigationManager.NavigateTo("/konferencijos");
+    }
+}
