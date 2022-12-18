@@ -5,7 +5,7 @@
 @inject NavigationManager NavigationManager
 @inject DataService _dataService
 
-@if (_dataService.ContainsKey("user") && (user.Privilegijos == "Administratorius"))
+@if (_dataService.ContainsKey("user") && (user.Privilegijos == "Administratorius") || (user.Privilegijos == "Konferencijų organizatorius"))
 {
     <h3>Sudaryti Header</h3>
     <div>
