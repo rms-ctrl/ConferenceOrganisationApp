@@ -5,7 +5,7 @@
 @inject NavigationManager NavigationManager
 @inject DataService _dataService
 
-<h3>Register</h3>
+<h3>Registracija</h3>
 <button @onclick="ShowOrganizerRegistrationForm">Konferencijos Organizatorius</button>
 <button @onclick="ShowSpeakerRegistrationForm">Pranešėjas</button>
 <div>
@@ -23,7 +23,7 @@
             <input type="password" id="password" @bind="vartotojas.Slaptazodis" required /><br />
       <label for="birthday">Gimimo data:</label><br />
             <input type="date" id="birthday" @bind="vartotojas.GimimoData" required /><br />
-      <button @onclick="ProcessOrganizatorius" type="submit">Submit</button>
+      <button @onclick="ProcessOrganizatorius" type="submit">Registruotis</button>
     </form>
   }
     else if (ShowSpeakerForm)
@@ -32,7 +32,7 @@
             <form>
           <label for="name">Vardas:</label><br />
             <input type="text" id="name" @bind="vartotojas.Vardas" required /><br />
-          <label for="surname">Pavarde:</label><br />
+          <label for="surname">Pavardė:</label><br />
             <input type="text" id="surname" @bind="vartotojas.Pavarde" required /><br />
           <label for="email">El. paštas:</label><br />
             <input type="email" id="email" @bind="vartotojas.ElPastas" required /><br />
@@ -44,19 +44,19 @@
             <input type="text" id="theme" @bind="auditorijosTema" required /><br />
           <label for="auditorija">Auditorija:</label><br />
             <input type="text" id="auditorija" @bind="auditorijosPavadinimas" required /><br />
-          <label for="room-name">Pavadinimas:</label><br />
+          <label for="room-name">Patalpos Id ir pavadinimas:</label><br />
           <!-- Dropdown list for Pavadinimas -->
           <select id="room-name">
             @foreach (var room in Rooms)
             {
-                <option value="@room.Pavadinimas">@room.Pavadinimas</option>
+                <option value="@room.Pavadinimas">@room.pk_Id - @room.Pavadinimas</option>
                 patalposPavadinimas = @room.Pavadinimas;
                 patalposId = @room.pk_Id;
             }
           </select>
           <br />
           <br />
-            <button @onclick="ProcessPranesejas" type="submit">Submit</button>
+            <button @onclick="ProcessPranesejas" type="submit">Registruotis </button>
         </form>
     }
 </div>

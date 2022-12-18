@@ -37,6 +37,7 @@
         <th>Kaina, eur.</th>
         <th>Aprašymas</th>
         <th>Tel. Nr.</th>
+        <th>Patalpos Id</th>
         <th></th>
     </tr>
     @foreach (var konferencija in konferencijos)
@@ -48,6 +49,7 @@
             <td>@konferencija.Kaina</td>
             <td>@konferencija.Aprasymas</td>
             <td>@konferencija.TelNr</td>
+            <td>@konferencija.fk_PatalposId</td>
                 <td>
                 <button @onclick="() => MoreInfo(konferencija.pk_Id)">Daugiau informacijos</button>
                 @if (_dataService.ContainsKey("user") && (user.Privilegijos == "Konferencijų organizatorius" || user.Privilegijos == "Administratorius"))
