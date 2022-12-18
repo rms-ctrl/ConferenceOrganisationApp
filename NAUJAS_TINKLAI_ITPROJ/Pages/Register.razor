@@ -111,7 +111,7 @@
 
     async void ProcessOrganizatorius()
     {
-        vartotojas.Privilegijos = "Konferencijos organizatorius";
+        vartotojas.Privilegijos = "Konferencijų organizatorius";
         vartotojas.EncryptPassword();
         string sql =
         "insert into vartotojas (Vardas, Pavardė, ElPaštas, Slaptažodis, GimimoData, Privilegijos) values (?vardas, ?pavarde, ?elpastas, ?slaptazodis, ?gimimodata, ?privilegijos)";
