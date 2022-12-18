@@ -8,7 +8,6 @@
 <h3>Register</h3>
 <button @onclick="ShowOrganizerRegistrationForm">Konferencijos Organizatorius</button>
 <button @onclick="ShowSpeakerRegistrationForm">Pranešėjas</button>
-
 <div>
   @if (ShowOrganizerForm)
   {
@@ -110,9 +109,10 @@
         }
     }
 
-    void ProcessOrganizatorius()
+    async void ProcessOrganizatorius()
     {
         vartotojas.Privilegijos = "Konferencijos organizatorius";
+        vartotojas.EncryptPassword();
         string sql =
         "insert into vartotojas (Vardas, Pavardė, ElPaštas, Slaptažodis, GimimoData, Privilegijos) values (?vardas, ?pavarde, ?elpastas, ?slaptazodis, ?gimimodata, ?privilegijos)";
         DataAccessMySql.Insert(sql, _config.GetConnectionString("default"), args =>
@@ -125,11 +125,13 @@
             args.Add("?privilegijos", MySqlDbType.VarChar).Value = vartotojas.Privilegijos;
         });
 
+
         NavigationManager.NavigateTo("/landing");
     }
 
-    void ProcessPranesejas()
+    async void ProcessPranesejas()
     {
+        vartotojas.EncryptPassword();
         vartotojas.Privilegijos = "Pranešėjas";
         string sql =
         "insert into vartotojas (Vardas, Pavardė, ElPaštas, Slaptažodis, GimimoData, Privilegijos) values (?vardas, ?pavarde, ?elpastas, ?slaptazodis, ?gimimodata, ?privilegijos)";
@@ -169,7 +171,6 @@
             args.Add("?tema", MySqlDbType.VarChar).Value = auditorijosTema;
             args.Add("?fkvartotojo", MySqlDbType.Int32).Value = vartotojasNew.pk_Id;
         });
-
         NavigationManager.NavigateTo("/landing");
     }
 }
