@@ -3,6 +3,7 @@
 @inject IConfiguration _config
 @inject NavigationManager NavigationManager
 @inject DataService _dataService
+@inject IJSRuntime JsRuntime
 
 <style>
     table {
@@ -124,26 +125,29 @@
         NavigationManager.NavigateTo($"/konferencijos/Header/{pk_Id}");
     }
 
-    void Delete(int pk_Id)
+    async Task Delete(int pk_Id)
     {
-        var count = headeriai.Count(r => r.fk_KonferencijosId == pk_Id);
-        if (count > 0)
+        bool confirmed = await JsRuntime.InvokeAsync<bool>("confirm", "Ar Jūs įsitikinęs?");
+        if(confirmed)
         {
-            string sql1 = "delete from `headeris` where fk_KonferencijaId=?id";
-            DataAccessMySql.Delete(sql1, _config.GetConnectionString("default"), args =>
+            var count = headeriai.Count(r => r.fk_KonferencijosId == pk_Id);
+            if (count > 0)
+            {
+                string sql1 = "delete from `headeris` where fk_KonferencijaId=?id";
+                DataAccessMySql.Delete(sql1, _config.GetConnectionString("default"), args =>
+                {
+                    args.Add("?id", MySqlDbType.Int32).Value = pk_Id;
+                });
+            }
+
+            string sql = "delete from `konferencija` where pk_Konferencija=?id";
+            DataAccessMySql.Delete(sql, _config.GetConnectionString("default"), args =>
             {
                 args.Add("?id", MySqlDbType.Int32).Value = pk_Id;
             });
+            NavigationManager.NavigateTo("/konferencijos", true);
         }
-
-        string sql = "delete from `konferencija` where pk_Konferencija=?id";
-        DataAccessMySql.Delete(sql, _config.GetConnectionString("default"), args =>
-        {
-            args.Add("?id", MySqlDbType.Int32).Value = pk_Id;
-        });
-      
-
-        NavigationManager.NavigateTo("/konferencijos");
+        
     }
 
     void DeleteHeader(int pk_Id)
